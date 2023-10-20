@@ -186,8 +186,7 @@ dat_id <- dat_long %>%
     age = age_cohort_T,
     id = 6000,
     cohort_sc = 0,
-    mean_age_sc20 = unique(dat_long$mean_age_sc20),
-    EM_sc_imp = 0
+    mean_age_sc20 = unique(dat_long$mean_age_sc20)
   ) %>%
   ungroup() %>%
   filter(age <= 65) %>%
