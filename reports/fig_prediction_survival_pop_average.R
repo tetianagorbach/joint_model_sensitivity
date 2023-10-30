@@ -208,7 +208,7 @@ pool_pred_1 <- pool_pred(
 pool_pred_2 <- pool_pred(
   vector_of_file_names = paste0(
     "code/results/",
-    names_all_files[grep("fit_jm_delta_2_", names_all_files)]
+    names_all_files[grep("fit_jm_delta_10_", names_all_files)]
   ),
   dat_id, method = "-10"
 )
