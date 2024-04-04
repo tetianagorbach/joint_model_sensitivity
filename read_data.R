@@ -3,13 +3,13 @@ library(lubridate)
 
 # read data and change ids to the simulated -------------------------------
 dat_everything <- readxl::read_excel(
-  path = "/Users/gote0002/Desktop/B_TG_allaT_AgeD_kl.xlsx",
+  path = path_to_betula_data,
   sheet = 1,
   na = "999"
 )
 
 ids <- readr::read_csv(
-  file = "/Users/gote0002/Desktop/unikt_nr_to_id.csv",
+  file = path_to_coding,
   col_types = c("d", "d")
 )
 
@@ -19,8 +19,8 @@ ids$unikt_nr[duplicated(ids$unikt_nr)] # only unique values of initial ids in th
 ids$id[duplicated(ids$id)] # only unique values of simulated ids in the code file
 
 # substitute initial ids by the simulated ids in the data
-dat_everything <- ids %>% #add data to the Betula and new ids
-  left_join(dat_everything, by = "unikt_nr") %>% 
+dat_everything <- ids %>% # add data to the Betula and new ids
+  left_join(dat_everything, by = "unikt_nr") %>%
   dplyr::select(-c(unikt_nr)) %>% # delete Betula id
   arrange(id, test_wave)
 rm(ids)
@@ -104,8 +104,8 @@ dat_long <- dat_long %>%
   )
 
 
-# delete rows with missing memory score and people with early onset of dementia
-id_early_onset <- unique(dat_long[dat_long$age_dementia < 65, ]$id)
+# delete people with early onset of dementia
+id_early_onset <- unique(dat_long[!is.na(dat_long$age_dementia) & dat_long$age_dementia < 65, ]$id)
 
 dat_long <- dat_long %>%
   filter(!(id %in% id_early_onset))
@@ -169,18 +169,18 @@ dat_surv_everything <- dat_long %>%
 mis_pattern <- unique(dat_surv_everything %>% dplyr::select(sample, waves_obs, max_wave_obs)) %>%
   arrange(sample, waves_obs) %>%
   mutate(
-    missing_data_pattern = ifelse(((sample == 1 | sample == 3 ) & max_wave_obs == 6),
-                                  "0.a",
-                                  ifelse((sample == 2 & waves_obs %in% c(23, 235, 25, 3)) |
-                                           sample == 4 | sample == 5 | (sample == 6 & max_wave_obs == 6), 
-                                  "0.b",
-                                  ifelse(
-      (sample == 1 & (max_wave_obs == 2 | max_wave_obs == 1)) |
-        sample == 2 |
-        (sample == 3 & (max_wave_obs == 3 | max_wave_obs == 2)) |
-        (sample == 6 & max_wave_obs == 5), 2, NA
-    )
-    )
+    missing_data_pattern = ifelse(((sample == 1 | sample == 3) & max_wave_obs == 6),
+      "0.a",
+      ifelse((sample == 2 & waves_obs %in% c(23, 235, 25, 3)) |
+        sample == 4 | sample == 5 | (sample == 6 & max_wave_obs == 6),
+      "0.b",
+      ifelse(
+        (sample == 1 & (max_wave_obs == 2 | max_wave_obs == 1)) |
+          sample == 2 |
+          (sample == 3 & (max_wave_obs == 3 | max_wave_obs == 2)) |
+          (sample == 6 & max_wave_obs == 5), 2, NA
+      )
+      )
     ),
     missing_data_pattern = ifelse(!is.na(missing_data_pattern),
       missing_data_pattern,
@@ -213,7 +213,7 @@ dat_long_to_impute <- dat_long %>%
   ) %>%
   filter(!is.na(waves_unobs)) %>% # do not impute for those people that have all observations
   filter(is.na(age_dementia) | age < age_dementia) %>%
-  filter(age < age_death | is.na(age_death))%>%
+  filter(age < age_death | is.na(age_death)) %>%
   group_by(id) %>%
   top_n(1, test_wave) %>%
   mutate(
@@ -269,38 +269,53 @@ rm(id_early_onset, dat_long_to_impute, mis_pattern, dat_long)
 
 
 dat_long_with_missing <- dat_long_with_missing %>%
-  mutate(across(c("age", "age_dropout"), ~ (.x - 20) / 100, .names = "{.col}_sc20"),
-         EM_cc_mean = mean(EM[!is.na(EM) & !is.na(educ_imp)]),
-         EM_cc_sd = sd(EM[!is.na(EM) & !is.na(educ_imp)]),
-         EM_sc = (EM - EM_cc_mean) / EM_cc_sd, # scale memory,
-         educ_cc_mean = mean(educ_imp[!is.na(EM) & !is.na(educ_imp)]),
-         educ_cc_sd = sd(educ_imp[!is.na(EM) & !is.na(educ_imp)]),
-         educ_imp_sc = (educ_imp - educ_cc_mean) / educ_cc_sd, # scale education
-         mean_age_sc20 = (mean(age[!is.na(EM) & !is.na(educ_imp)]) - 20) / 100,
-         cohort_sc = (cohort - 1937) / 100
-  )  %>%
+  mutate( # across(c("age", "age_dropout"), ~ (.x - 20) / 100, .names = "{.col}_sc20"),
+    #        across(c("age", "age_dropout"), ~ (.x - 20), .names = "{.col}_20"),
+    #   EM_cc_mean = mean(EM[!is.na(EM) & !is.na(educ_imp)]),
+    #   EM_cc_sd = sd(EM[!is.na(EM) & !is.na(educ_imp)]),
+    #   EM_sc = (EM - EM_cc_mean) / EM_cc_sd, # scale memory,
+    #   educ_cc_mean = mean(educ_imp[!is.na(EM) & !is.na(educ_imp)]),
+    #   educ_cc_sd = sd(educ_imp[!is.na(EM) & !is.na(educ_imp)]),
+    #   educ_imp_sc = (educ_imp - educ_cc_mean) / educ_cc_sd, # scale education
+    #   mean_age_sc20 = (mean(age[!is.na(EM) & !is.na(educ_imp)]) - 20) / 100,
+    #  mean_age_20 = mean(age[!is.na(EM) & !is.na(educ_imp)]) - 20,
+    mean_age = mean(age[!is.na(EM) & !is.na(educ_imp)]),
+    cohort = cohort - 1937,
+    #  cohort_sc = cohort/100
+  ) %>%
   arrange(id) # sort by id
 
 
-dat_surv_everything <- dat_surv_everything %>% # add scaled education to the survival data
-  left_join(dat_long_with_missing%>%
-              distinct(id, educ_imp, educ_imp_sc), by = "id")%>%
+dat_surv_everything <- dat_surv_everything %>% 
+  left_join(dat_long_with_missing %>%
+    distinct(
+      id, educ_imp, # educ_imp_sc
+    ), by = "id") %>%
   mutate(
     across(c("age_enrol", "age_event"),
-      ~ (.x - 25) / 100,
-      .names = "{.col}_sc25"
-    ) # scaled age 0 corresponds to true age 25
+      ~ (.x - 5),
+      .names = "{.col}_5"
+    )
+    # ,
+    # across(c("age_enrol", "age_event"),
+    #   ~ (.x - 25) / 100,
+    #   .names = "{.col}_sc25"
+    # ) # scaled age 0 corresponds to true age 25
   )
-dat_surv <- dat_surv_everything%>%
-  filter(!is.na(educ_imp))%>%
+dat_surv <- dat_surv_everything %>%
+  filter(!is.na(educ_imp)) %>%
   arrange(id)
 
-dat_long <- dat_long_with_missing%>%
-  filter( !is.na(educ_imp))%>%
+dat_long <- dat_long_with_missing %>%
+  filter(!is.na(educ_imp)) %>%
   dplyr::select(
-    id, age, age_sc20, mean_age_sc20, age_cohort_T, EM, EM_sc,  EM_cc_mean, EM_cc_sd, 
-    sex, educ, educ_imp, educ_imp_sc, educ_cc_mean,  educ_cc_sd,  ind_enrol, cohort_sc, 
+    id, age, mean_age, # age_20, mean_age_20, age_sc20, mean_age_sc20, 
+    age_cohort_T,
+    EM, # EM_sc, EM_cc_mean, EM_cc_sd,
+    sex, educ, educ_imp,
+    # educ_imp_sc, educ_cc_mean, educ_cc_sd,
+    ind_enrol, cohort, # cohort_sc,
     missing_data_pattern
   )
 
-#save(dat_long, dat_surv, file = "code/dat.Rdata")
+# save(dat_long, dat_surv, file = "dat.Rdata")

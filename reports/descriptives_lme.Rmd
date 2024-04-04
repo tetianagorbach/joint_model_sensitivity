@@ -15,88 +15,116 @@ library(MuMIn)
 
 # Read data
 ```{r read data, echo=F, warning = F}
-getwd()
 source("../read_data.r")
 # scale age, EM, education and delete rows with missing education,
 # select variables from longitudinal data
-#dat_long_lme <- dat_long_with_missing%>%
-  # filter(!is.na(EM))%>%
-  # filter(age < age_dementia | is.na(age_dementia))%>% # do not use EM observations after dementia onset
-  # filter(age < age_death | is.na(age_death))%>% # do not use EM observations after death
-  # # filter(!is.na(educ_imp))%>% # use only the rows with available education
-  # mutate(
-  #   across(c("age", "age_enrol", "age_dropout"), ~(.x-20)/100,  .names = "{.col}_sc20"),
-  #   across(c("EM", "educ_imp"), ~ scale(.x)[,1],  .names = "{.col}_sc1"),
-  #   mean_age_sc20 = mean(age_sc20),
-  #   t = age_sc20 - mean_age_sc20,
-  #   cohort_sc = (cohort - 1937)/100)%>%
-  # dplyr::select(c( id, sample,t, age, age_cohort_T, sex, educ_imp,  ind_enrol, cohort_sc,
-  #                  age_enrol, age_dropout, MMSE,  EM, EM_sc, 
-  #                  educ_imp_sc, age_sc20, age_enrol_sc20, age_dropout_sc20, mean_age_sc20,
-  #                 missing_data_pattern, date_birth))%>%
-  # arrange(id) # sort by id
-
-
+# dat_long_lme <- dat_long_with_missing%>%
+# filter(!is.na(EM))%>%
+# filter(age < age_dementia | is.na(age_dementia))%>% # do not use EM observations after dementia onset
+# filter(age < age_death | is.na(age_death))%>% # do not use EM observations after death
+# # filter(!is.na(educ_imp))%>% # use only the rows with available education
+# mutate(
+#   across(c("age", "age_enrol", "age_dropout"), ~(.x-20)/100,  .names = "{.col}_sc20"),
+#   across(c("EM", "educ_imp"), ~ scale(.x)[,1],  .names = "{.col}_sc1"),
+#   mean_age_sc20 = mean(age_sc20),
+#   t = age_sc20 - mean_age_sc20,
+#   cohort_sc = (cohort - 1937)/100)%>%
+# dplyr::select(c( id, sample,t, age, age_cohort_T, sex, educ_imp,  ind_enrol, cohort_sc,
+#                  age_enrol, age_dropout, MMSE,  EM, EM_sc,
+#                  educ_imp_sc, age_sc20, age_enrol_sc20, age_dropout_sc20, mean_age_sc20,
+#                 missing_data_pattern, date_birth))%>%
+# arrange(id) # sort by id
 ```
 
 # Descriptives
 
+## Table 1
 ```{r, eval = F, include = F}
-print(xtable(dat_long_with_missing%>%
-  filter(!is.na(EM))%>%
-  group_by(sample, test_wave)%>%
-  summarise(n= n())%>%
-  ungroup()%>%
-  pivot_wider(names_from = test_wave, values_from = n),
-  digits = 0), 
-  include.rownames=FALSE)
+print(
+  xtable(
+    dat_long_with_missing %>%
+      filter(!is.na(EM)) %>%
+      group_by(sample, test_wave) %>%
+      summarise(n = n()) %>%
+      ungroup() %>%
+      pivot_wider(names_from = test_wave, values_from = n),
+    digits = 0
+  ),
+  include.rownames = FALSE
+)
 ```
 
 This is compatible with  Table 1 in Nyberg et al., 2020
 ```{r}
-dat_everything%>%
-  filter(!is.na(mt_testdate_month))%>%
-  group_by(`Participant::sample`, test_wave)%>%
-  summarise(n= n())%>%
-  ungroup()%>%
+dat_everything %>%
+  filter(!is.na(mt_testdate_month)) %>%
+  group_by(`Participant::sample`, test_wave) %>%
+  summarise(n = n()) %>%
+  ungroup() %>%
   pivot_wider(names_from = test_wave, values_from = n)
 ```
 
+## Table A1
 ```{r number of participants per missing data pattern}
-print(xtable(dat_surv_everything%>%
-  group_by(missing_data_pattern, sample, waves_obs, waves_obs_before_dementia)%>%
-  summarise(n())%>%
-    adorn_totals()%>%
+print(xtable(
+  dat_surv_everything %>%
+    group_by(missing_data_pattern, sample, waves_obs, waves_obs_before_dementia) %>%
+    summarise(n()) %>%
+    adorn_totals() %>%
     mutate(
-      sample  = paste0("S", sample, sep  ="")), 
-  digits = 0),include.rownames=FALSE)
+      sample = paste0("S", sample, sep = "")
+    ),
+  digits = 0
+), include.rownames = FALSE)
 ```
 
 ```{r interim missing}
-d <- dat_surv_everything%>%
-  filter(!(sample == 1 & waves_obs %in% c(123456, 12345, 1234, 123, 12, 1)))%>%
-  filter(!(sample == 2 & waves_obs %in% c(23, 2, 235)))%>%
-  filter(!(sample == 3 & waves_obs %in% c(23456, 2345, 234, 23,2)))%>%
-  filter(!(sample == 4 | sample ==5))%>%
-  filter(!(sample ==6 & waves_obs %in% c(56,5)))
-  
+d <- dat_surv_everything %>%
+  filter(!(sample == 1 & waves_obs %in% c(123456, 12345, 1234, 123, 12, 1))) %>%
+  filter(!(sample == 2 & waves_obs %in% c(23, 2, 235))) %>%
+  filter(!(sample == 3 & waves_obs %in% c(23456, 2345, 234, 23, 2))) %>%
+  filter(!(sample == 4 | sample == 5)) %>%
+  filter(!(sample == 6 & waves_obs %in% c(56, 5)))
 
-d%>%group_by(sample, waves_obs)%>%
-  summarise(n())%>%
-    adorn_totals()
+
+d %>%
+  group_by(sample, waves_obs) %>%
+  summarise(n()) %>%
+  adorn_totals()
+```
+```{r}
+pdf(
+  file = "Gorbach_Figure_A1.pdf", # The directory you want to save the file in
+  width = 6, # The width of the plot in inches
+  height = 3
+)
+dat_long%>%
+  left_join(dat_surv%>%dplyr::select(id, age_enrol, age_last_obs))%>%
+  filter(is.na(EM))%>%
+  group_by(age_last_obs, id)%>%
+  summarise(n_missing = n())%>%
+  ungroup()%>%
+  ggplot()+
+  geom_histogram(aes(x = age_last_obs))+
+  facet_grid(n_missing~., scales = "free_y")+
+  theme_classic() + 
+  ylab("Count") + xlab("Age at the last memory observation, years")
+dev.off()
+
 ```
 
-
+## Table A2
 ```{r number of participants per missing data pattern and sample}
-print(xtable(dat_surv_everything%>%
-  group_by(sample,missing_data_pattern)%>%
+print(xtable(dat_surv_everything %>%
+  group_by(sample, missing_data_pattern) %>%
   mutate(
-    sample  = paste0("S", sample, sep  =""))%>%
-  summarise(n())%>%
-    adorn_totals()),include.rownames=FALSE)
+    sample = paste0("S", sample, sep = "")
+  ) %>%
+  summarise(n()) %>%
+  adorn_totals()), include.rownames = FALSE)
 ```
 
-
+## Table 2
 ```{r descriptives per pattern}
 summary_by_missing_data_pattern <-
   dat_surv_everything %>%
@@ -127,10 +155,14 @@ summary_total <- dat_surv_everything %>%
 
 print(
   xtable(
-    rbind(summary_by_missing_data_pattern, 
-          cbind(missing_data_pattern = "total", summary_total)),
-    digits = c(0, 0, 0, 0,0, 1, 1, 0, 1, 1)
-    ), include.rownames = FALSE)
+    rbind(
+      summary_by_missing_data_pattern,
+      cbind(missing_data_pattern = "total", summary_total)
+    ),
+    digits = c(0, 0, 0, 0, 0, 1, 1, 0, 1, 1)
+  ),
+  include.rownames = FALSE
+)
 
 rm(summary_by_missing_data_pattern, summary_total)
 ```
@@ -143,38 +175,83 @@ summary_by_missing_data_pattern <-
     n = n(),
     n_demented = paste0(sum(status), " (", round(mean(status) * 100, digits = 0), ")"),
     n_censored = sum(status == F),
-    n_censored_dem_eval = paste0(sum(age_censor == age_dementia_eval, na.rm = T),
-                                  " (", round(sum(age_censor == age_dementia_eval, na.rm = T)/n * 100, digits = 0), ")"),
-    n_censored_death = paste0(sum(age_censor ==  age_death, na.rm = T),
-                               " (", round(sum(age_censor == age_death, na.rm = T)/n * 100, digits = 0), ")"),
-    n_censored_last_obs = paste0(sum(age_censor == age_last_obs + 0.003, na.rm=T),
-                                  " (", round(sum(age_censor == age_last_obs + 0.003, na.rm = T)/n * 100, digits = 0), ")")
+    n_censored_dem_eval = paste0(
+      sum(age_censor == age_dementia_eval, na.rm = T),
+      " (", round(sum(age_censor == age_dementia_eval, na.rm = T) / n * 100, digits = 0), ")"
+    ),
+    n_censored_death = paste0(
+      sum(age_censor == age_death, na.rm = T),
+      " (", round(sum(age_censor == age_death, na.rm = T) / n * 100, digits = 0), ")"
+    ),
+    n_censored_last_obs = paste0(
+      sum(age_censor == age_last_obs + 0.003, na.rm = T),
+      " (", round(sum(age_censor == age_last_obs + 0.003, na.rm = T) / n * 100, digits = 0), ")"
+    )
   ) %>%
   ungroup()
 ```
 
 ```{r figure mean memory per pattern}
-pdf(file = "Figure_mean_EM_per_pattern.pdf",   # The directory you want to save the file in
-   width = 6, # The width of the plot in inches
-   height = 3)
-dat_long%>%
-  filter(!is.na(EM_sc)) %>%
-  group_by(age_cohort_T,missing_data_pattern) %>%
+Figure_mean_EM_per_pattern <- dat_long %>%
+  filter(!is.na(EM)) %>%
+  group_by(age_cohort_T, missing_data_pattern) %>%
   summarise(
-    mean_age_cohort  = mean(age_cohort_T),
-    mean_memory = mean(EM))%>%
-  ungroup()%>%
-  ggplot(aes(x = mean_age_cohort, y = mean_memory,  group = missing_data_pattern, 
-             shape =missing_data_pattern, linetype = missing_data_pattern)) +
+    mean_age_cohort = mean(age_cohort_T),
+    mean_memory = mean(EM)
+  ) %>%
+  ungroup() %>%
+  ggplot(aes(
+    x = mean_age_cohort, y = mean_memory, group = missing_data_pattern,
+    shape = missing_data_pattern, linetype = missing_data_pattern
+  )) +
   geom_point() +
-  geom_line(aes(linetype = missing_data_pattern))+
-  scale_shape_manual(values=c(1, 0, 4, 5, 2, 6, 8),name = "Missing data pattern, d = ")+
-  scale_linetype_manual(values=c("solid", "longdash","twodash","dotdash","dotted", "dotted"),
-                        name = "Missing data pattern, d = ")+
-  xlab("Age cohort") +
-  ylab("Mean observed memory")+
+  geom_line(aes(linetype = missing_data_pattern)) +
+  scale_shape_manual(values = c(1, 0, 4, 5, 2, 6, 8), name = "Missing data pattern, d = ") +
+  scale_linetype_manual(
+    values = c("solid", "longdash", "twodash", "dotdash", "dotted", "dotted"),
+    name = "Missing data pattern, d = "
+  ) +
+  xlab("Age at memory assessment, years") +
+  ylab("Mean observed memory") +
   theme_classic()
+Figure_mean_EM_per_pattern
+pdf(
+  file = "Gorbach_Figure_1.pdf", # The directory you want to save the file in
+  width = 6, # The width of the plot in inches
+  height = 3
+)
+Figure_mean_EM_per_pattern
 dev.off()
+
+# a <- dat_long %>%
+#   filter(is.na(EM))%>%
+#   left_join(dat_surv%>%dplyr::select(id, age_enrol, age_last_obs))%>%
+#   group_by(id)%>%
+#   summarise(
+#     n_missing = n())%>%
+#   ungroup()
+# b <- dat_long%>%
+#   filter(!is.na(EM)) %>%
+#   left_join(a)%>%
+#   mutate(n_missing = ifelse(is.na(n_missing), 0, n_missing),
+#          n_missing = factor(n_missing))%>%
+#   group_by(age_cohort_T, n_missing) %>%
+#   summarise(
+#     mean_age_cohort = mean(age_cohort_T),
+#     mean_memory = mean(EM)
+#   ) %>%
+#   ungroup() %>%
+#   ggplot(aes(
+#     x = mean_age_cohort, y = mean_memory, group = n_missing,
+#     shape = n_missing, linetype = n_missing
+#   )) +
+#   geom_point() +
+#   geom_line(aes(linetype = n_missing)) +
+#   xlab("Age at memory assessment, years") +
+#   ylab("Mean observed memory") +
+#   theme_classic()
+
+
 ```
 
 \newpage
@@ -182,126 +259,151 @@ dev.off()
 # LME model
 
 ```{r lme models fit}
-dat_long <- dat_long%>%
-  mutate(t = age_sc20 - mean_age_sc20)
-lme_fit_1 <- nlme::lme(EM_sc ~ t + 
-  sex + educ_imp_sc + ind_enrol + I(ind_enrol * t) + cohort_sc,
-random = ~ age_sc20 | id, data = dat_long, method = "ML"
+dat_long <- dat_long %>%
+  mutate(t = age - mean_age)%>%
+  filter(!is.na(EM))
+lme_fit_1 <- nlme::lme(
+  EM ~ t +
+    sex + educ_imp + ind_enrol + I(ind_enrol * age) + cohort,
+  random = ~ t | id, data = dat_long, method = "ML"
 )
 
-lme_fit_2 <- nlme::lme(EM_sc ~ poly(t, 2, raw = TRUE) +
-  sex + educ_imp_sc + ind_enrol + I(ind_enrol * t) + cohort_sc,
-random = ~ t | id, data = dat_long, method = "ML"
+lme_fit_2 <- nlme::lme(
+  EM ~ poly(t, 2, raw = TRUE) +
+    sex + educ_imp + ind_enrol + I(ind_enrol * age) + cohort,
+  random = ~ t | id, data = dat_long, method = "ML"
 )
 
-lme_fit_3 <- nlme::lme(EM_sc ~ poly(t, 3, raw = TRUE) +
-  sex + educ_imp_sc + ind_enrol + I(ind_enrol * t) + cohort_sc,
-random = ~ t | id, data = dat_long, method = "ML"
+lme_fit_3 <- nlme::lme(
+  EM ~ poly(t, 3, raw = TRUE) +
+    sex + educ_imp + ind_enrol + I(ind_enrol * age) + cohort,
+  random = ~ t | id, data = dat_long, method = "ML"
 )
 
-lme_fit_4 <- nlme::lme(EM_sc ~ poly(t, 4, raw = TRUE) +
-  sex + educ_imp_sc + ind_enrol + I(ind_enrol * t) + cohort_sc,
-random = ~ t| id, data = dat_long, method = "ML"
+lme_fit_4 <- nlme::lme(
+  EM ~ poly(t, 4, raw = TRUE) +
+    sex + educ_imp + ind_enrol + I(ind_enrol * age) + cohort,
+  random = ~ t | id, data = dat_long, method = "ML"
 )
 
-lme_fit_5 <- nlme::lme(EM_sc ~ poly(t, 5, raw = TRUE) +
-  sex +educ_imp_sc + ind_enrol + I(ind_enrol * t) + cohort_sc,
-random = ~ t | id, data = dat_long, method = "ML"
+lme_fit_5 <- nlme::lme(
+  EM ~ poly(t, 5, raw = TRUE) +
+    sex + educ_imp + ind_enrol + I(ind_enrol * age) + cohort,
+  random = ~ t | id, data = dat_long, method = "ML"
 )
 
-lme_fit_ns2 <- nlme::lme(EM_sc ~ ns(t, df = 2) +
-  sex + educ_imp_sc + ind_enrol + I(ind_enrol * t) + cohort_sc,
-random = ~ t | id, data = dat_long, method = "ML"
+lme_fit_ns2 <- nlme::lme(
+  EM ~ ns(t, df = 2) +
+    sex + educ_imp + ind_enrol + I(ind_enrol * age) + cohort,
+  random = ~ t | id, data = dat_long, method = "ML"
 )
 
-lme_fit_ns3 <- nlme::lme(EM_sc ~ ns(t, df = 3) +
-  sex + educ_imp_sc + ind_enrol + I(ind_enrol * t) + cohort_sc,
-random = ~ t | id, data = dat_long, method = "ML"
+lme_fit_ns3 <- nlme::lme(
+  EM ~ ns(t, df = 3) +
+    sex + educ_imp + ind_enrol + I(ind_enrol * age) + cohort,
+  random = ~ t | id, data = dat_long, method = "ML"
 )
 
-lme_fit_ns4 <- nlme::lme(EM_sc ~ ns(t, df = 4) +
-  sex + educ_imp_sc + ind_enrol + I(ind_enrol * t) + cohort_sc,
-random = ~ t | id, data = dat_long, method = "ML"
+
+lme_fit_ns4 <- nlme::lme(
+  EM ~ ns(t, df = 4) +
+    sex + educ_imp + ind_enrol + I(ind_enrol * age) + cohort,
+  random = ~ t | id, data = dat_long, method = "ML"
 )
 
-lme_fit_ns5 <- nlme::lme(EM_sc ~ ns(t, df = 5) +
-  sex + educ_imp_sc + ind_enrol + I(ind_enrol * t) + cohort_sc,
-random = ~ t | id, data = dat_long, method = "ML"
+lme_fit_ns5 <- nlme::lme(
+  EM ~ ns(t, df = 5) +
+    sex + educ_imp + ind_enrol + I(ind_enrol * age) + cohort,
+  random = ~ t | id, data = dat_long, method = "ML"
 )
-lme_fit_ns6 <- nlme::lme(EM_sc ~ ns(t, df = 6) +
-  sex + educ_imp_sc + ind_enrol + I(ind_enrol * t) + cohort_sc,
-random = ~ t| id, data = dat_long, method = "ML"
+lme_fit_ns6 <- nlme::lme(
+  EM ~ ns(t, df = 6) +
+    sex + educ_imp + ind_enrol + I(ind_enrol * age) + cohort,
+  random = ~ t | id, data = dat_long, method = "ML"
 )
 ```
 
 ```{r anova}
-
-anova(lme_fit_1, lme_fit_2, lme_fit_3,  lme_fit_4, lme_fit_5, 
-          lme_fit_ns2, lme_fit_ns3, lme_fit_ns4, lme_fit_ns5, lme_fit_ns6)
+anova(
+  lme_fit_1, lme_fit_2, lme_fit_3, lme_fit_4, lme_fit_5,
+  lme_fit_ns2, lme_fit_ns3, lme_fit_ns4, lme_fit_ns5, lme_fit_ns6
+)
 
 print(
   xtable(
-    anova(lme_fit_1, lme_fit_2, lme_fit_3,  lme_fit_4, lme_fit_5,
-          lme_fit_ns2, lme_fit_ns3, lme_fit_ns4, lme_fit_ns5, lme_fit_ns6),
-    include.rownames = FALSE)
+    anova(
+      lme_fit_1, lme_fit_2, lme_fit_3, lme_fit_4, lme_fit_5,
+      lme_fit_ns2, lme_fit_ns3, lme_fit_ns4, lme_fit_ns5, lme_fit_ns6
+    ),
+    include.rownames = FALSE
   )
+)
 ```
 
 ```{r figure }
-t = seq(-0.4, 0.4, by = 0.01)
-new_data <- data.frame(t, 
-                       educ_imp_sc = mean(dat_surv$educ_imp_sc, na.rm=T),
-                       sex = 0, 
-                       ind_enrol = 0,
-                       cohort_sc = 0)
-library(nlme)
-predict_lme_fit3 <- predict(lme_fit_3, newdata = new_data, level = 0, se.fit = T)
-predict_lme_fitns3 <- predict(lme_fit_ns3, newdata = new_data, level = 0, se.fit = T)
-
-pdf(file = "Figure_mean_predictions.pdf",   # The directory you want to save the file in
-   width = 5,
-   height = 3)# The width of the plot in inches)
-ggplot() +
-  geom_point(aes(x = (age_sc20)*100 +20, y = EM_sc, group = id), dat_long, size = 0.1, col = "grey") +
-  geom_line(aes(x = (age_sc20)*100 +20 , y = EM_sc, group = id), dat_long, size = 0.1, col = "grey") +
-  geom_line(aes(x = (t + 0.4214415)*100 + 20 , y = predict_lme_fit3$fit, group = 1), colour = "#FFC20A", size = 0.5)  + 
-  geom_line(aes(x = (t + 0.4214415)*100 + 20 , y = predict_lme_fitns3$fit, group = 1), colour = "#0C7BDC", size = 0.5)  +
-  geom_ribbon(aes(x = (t + 0.4214415)*100 + 20  ,
-                  ymin = predict_lme_fit3$fit - qnorm(0.975)*predict_lme_fit3$se.fit,
-                  ymax = predict_lme_fit3$fit + qnorm(0.975)*predict_lme_fit3$se.fit), fill = "#FFC20A", alpha = 0.4) +
-geom_ribbon(aes(x = (t + 0.4214415)*100 + 20,
-                  ymin = predict_lme_fitns3$fit - qnorm(0.975)*predict_lme_fitns3$se.fit,
-                  ymax = predict_lme_fitns3$fit + qnorm(0.975)*predict_lme_fitns3$se.fit), fill = "#0C7BDC", alpha = 0.4) +
-  theme_classic() +
-  ylab("EM score scaled") + 
-  xlab("Age") +
-  theme(legend.title=element_text(size=20),
-       legend.text=element_text(size=14))
-dev.off()
-
-pdf(file = "Figure_difference_lme.pdf",   # The directory you want to save the file in
-   width = 5,
-   height = 3)
-dat_long_lme <- dat_long%>% 
-  mutate(
-  predict_lme_3 = predict(lme_fit_3),
-  predict_lme_ns3 = predict(lme_fit_ns3),
-)
-
-ggplot() +
-  geom_point(aes(x = predict_lme_ns3, y = predict_lme_ns3 - predict_lme_3), dat_long_lme, size = 1, col = "grey")+
-  theme_classic() +
-  xlab("Prediction using lme_fit_ns3") +
-  ylab("Difference") + #Prediction lme_fit_3 - prediction lme_fit_ns3
-  theme(legend.title=element_text(size=20),
-       legend.text=element_text(size=14))
-dev.off()
+# t <- seq(-0.4, 0.4, by = 0.01)
+# new_data <- data.frame(t,
+#   educ_imp_sc = mean(dat_surv$educ_imp_sc, na.rm = T),
+#   sex = 0,
+#   ind_enrol = 0,
+#   cohort_sc = 0
+# )
+# library(nlme)
+# predict_lme_fit3 <- predict(lme_fit_3, newdata = new_data, level = 0, se.fit = T)
+# predict_lme_fitns3 <- predict(lme_fit_ns3, newdata = new_data, level = 0, se.fit = T)
+# 
+# pdf(
+#   file = "aaFigure_mean_predictions.pdf", # The directory you want to save the file in
+#   width = 5,
+#   height = 3
+# ) # The width of the plot in inches)
+# ggplot() +
+#   geom_point(aes(x = (age_sc20) * 100 + 20, y = EM_sc, group = id), dat_long, size = 0.1, col = "grey") +
+#   geom_line(aes(x = (age_sc20) * 100 + 20, y = EM_sc, group = id), dat_long, linewidth = 0.1, col = "grey") +
+#   geom_line(aes(x = (t + 0.4214415) * 100 + 20, y = predict_lme_fit3$fit, group = 1), colour = "#FFC20A", linewidth = 0.5) +
+#   geom_line(aes(x = (t + 0.4214415) * 100 + 20, y = predict_lme_fitns3$fit, group = 1), colour = "#0C7BDC", linewidth = 0.5) +
+#   geom_ribbon(aes(
+#     x = (t + 0.4214415) * 100 + 20,
+#     ymin = predict_lme_fit3$fit - qnorm(0.975) * predict_lme_fit3$se.fit,
+#     ymax = predict_lme_fit3$fit + qnorm(0.975) * predict_lme_fit3$se.fit
+#   ), fill = "#FFC20A", alpha = 0.4) +
+#   geom_ribbon(aes(
+#     x = (t + 0.4214415) * 100 + 20,
+#     ymin = predict_lme_fitns3$fit - qnorm(0.975) * predict_lme_fitns3$se.fit,
+#     ymax = predict_lme_fitns3$fit + qnorm(0.975) * predict_lme_fitns3$se.fit
+#   ), fill = "#0C7BDC", alpha = 0.4) +
+#   theme_classic() +
+#   ylab("EM score scaled") +
+#   xlab("Age") +
+#   theme(
+#     legend.title = element_text(size = 20),
+#     legend.text = element_text(size = 14)
+#   )
+# dev.off()
+# 
+# pdf(
+#   file = "Figure_difference_lme.pdf", # The directory you want to save the file in
+#   width = 5,
+#   height = 3
+# )
+# dat_long_lme <- dat_long %>%
+#   mutate(
+#     predict_lme_3 = predict(lme_fit_3),
+#     predict_lme_ns3 = predict(lme_fit_ns3),
+#   )
+# 
+# ggplot() +
+#   geom_point(aes(x = predict_lme_ns3, y = predict_lme_ns3 - predict_lme_3), dat_long_lme, size = 1, col = "grey") +
+#   theme_classic() +
+#   xlab("Prediction using lme_fit_ns3") +
+#   ylab("Difference") + # Prediction lme_fit_3 - prediction lme_fit_ns3
+#   theme(
+#     legend.title = element_text(size = 20),
+#     legend.text = element_text(size = 14)
+#   )
+# dev.off()
 ```
 
 ```{r}
-summary(lme_fit_3)
+#summary(lme_fit_3)
 ```
-
-
-
-
