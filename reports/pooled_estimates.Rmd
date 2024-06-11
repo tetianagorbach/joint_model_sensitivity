@@ -23,12 +23,15 @@ combine_obs_bayes <- function(fit_file) {
     do.call(rbind, fit_jm[["mcmc"]][["gammas"]][1:3]),
     do.call(rbind, fit_jm[["mcmc"]][["alphas"]][1:3])
   )
-  rm(fit_jm)
+  
   print(max(c(fit_jm[["statistics"]][["Rhat"]][["betas1"]][,1], 
               fit_jm[["statistics"]][["Rhat"]][["gammas"]][,1],
               fit_jm[["statistics"]][["Rhat"]][["alphas"]][,1], 
               fit_jm[["statistics"]][["Rhat"]][["sigmas"]][,1])))
-
+  a <-  unlist(fit_jm[["acc_rates"]])
+  print(min((a[a!=0])))
+  print(max((a[a!=0])))
+ rm(fit_jm)
   list(
     delta = "NA",
     est = apply(posterior, 2, mean),
@@ -42,6 +45,8 @@ combine_mi_est_bayes <- function(vector_of_file_names, delta) {
 
   posterior <- matrix(nrow = 0, ncol = 13)
   max_r_hat <- numeric(length(vector_of_file_names))
+  acc_min <- numeric(length(vector_of_file_names))
+  acc_max <- numeric(length(vector_of_file_names))
   for (i in 1:length(vector_of_file_names)) {
     # read the fit
     load(paste0("../results/", vector_of_file_names[i], sep = ""))
@@ -55,12 +60,18 @@ combine_mi_est_bayes <- function(vector_of_file_names, delta) {
                           fit_jm[["statistics"]][["Rhat"]][["gammas"]][,1],
                           fit_jm[["statistics"]][["Rhat"]][["alphas"]][,1],
                           fit_jm[["statistics"]][["Rhat"]][["sigmas"]][,1]))
+    
+    a <-  unlist(fit_jm[["acc_rates"]])
+    acc_min[i] <- min((a[a!=0]))
+    acc_max[i] <- max((a[a!=0]))
     rm(fit_jm)
    
     # add  rows of posterior draws for imputation i to a combined posterior
     posterior <- rbind(posterior, posterior_i)
   }
   print(max_r_hat)
+  print(acc_min)
+  print(acc_max)
   list(
     delta = delta,
     est = apply(posterior, 2, mean),
@@ -75,7 +86,7 @@ combine_mi_est_bayes <- function(vector_of_file_names, delta) {
 
 
 ```{r pool parameters}
-est_obs <- combine_obs_bayes("../results/fit_jm_observed.Rdata")
+est_obs <- combine_obs_bayes(fit_file = "../results/fit_jm_observed.Rdata")
 
 names_all_files <- list.files("../results/")
 est_delta0 <- combine_mi_est_bayes(
