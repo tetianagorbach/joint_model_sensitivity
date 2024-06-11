@@ -172,7 +172,7 @@ pool_pred_obs <- function(vector_of_file_names, dat_id, method) { # pool predict
   )
   list(pooled_long, pooled_surv)
 }
-plot_predictions <- function(list_of_pooled_predictions, dat_id) {
+plot_predictions <- function(list_of_pooled_predictions, dat_id, xlim_min) {
   pred_long <- do.call(rbind, lapply(list_of_pooled_predictions[-length(list_of_pooled_predictions)], function(x) { x[[1]]}))
   pred_surv <- do.call(rbind, lapply(list_of_pooled_predictions[-length(list_of_pooled_predictions)], function(x) { x[[2]]}))
 
@@ -188,7 +188,7 @@ plot_predictions <- function(list_of_pooled_predictions, dat_id) {
       Age = times,
       method = gsub("delta = ", "", method),
       method = factor(method, levels = c("MAR", "0", "changing", "-1", "observed"),
-                      labels=c("MAR", "0", "changing", "-1", "observed"))
+                      labels=c("MAR", "0", "age-varying", "-1", "observed"))
     )
   
   plot1 <- obs_and_pred_long %>%
@@ -219,19 +219,20 @@ plot_predictions <- function(list_of_pooled_predictions, dat_id) {
     ) +
     ylab("Memory") +
     ylim(-30, 60) +
+    xlim(xlim_min, 100) + 
     theme_classic() +
     theme(
       legend.position = "bottom",
-      plot.margin = margin(0, 0, 0,0 , "cm")# ,
+      plot.margin = margin(0, 0.1, 0,0 , "cm") ,
       # legend.title = element_text(size = 20),
       # legend.text = element_text(size = 20) #,
-      # axis.title = element_text(size = 20),
-      # axis.text = element_text(size = 20)
-    ) +
+      axis.title = element_text(size = 10),
+      axis.text = element_text(size = 5),
+      axis.title.y = element_text(margin = margin(r = 0) ))  + 
     guides(linetype=guide_legend(nrow=1, byrow = TRUE, keywidth = 2)) +
     scale_linetype_manual(
-      values = c("MAR" = "solid" ,"0" = "longdash", "changing" = "dashed", "-1" = "dotted"),
-      name = expression(paste(Delta, "="))
+      values = c("MAR" = "solid" ,"0" = "longdash", "age-varying" = "dashed", "-1" = "dotted"),
+      labels = c("MAR", expression(paste(Delta, "=", 0)), expression(paste(Delta, "=", -((age - 25) / 75)^3)), expression(paste(Delta, "=-1")))
     )
   
   
@@ -244,21 +245,25 @@ plot_predictions <- function(list_of_pooled_predictions, dat_id) {
     geom_ribbon(aes(x = Age, ymin = low, ymax = upp, linetype = method), alpha = 0.05, show.legend = F) +
     ylab("CIF") +
     xlab("Age, years") +
-    ylim(0, 1) +
+    xlim(xlim_min, 100) + 
     theme_classic() +
     theme(
       legend.position = "bottom",
-      plot.margin = margin(0, 0, 0,0 , "cm") # ,
+      plot.margin = margin(0, 0.1, 0, 0 , "cm"), 
       # legend.title = element_text(size = 20),
       # legend.text = element_text(size = 20) #,
-      # axis.title = element_text(size = 20),
-      # axis.text = element_text(size = 20)
-    )  + 
+      axis.title = element_text(size = 10),
+      axis.text = element_text(size = 5),
+      axis.title.y = element_text(margin = margin(r = 0) ))  + 
     #guides(linetype=guide_legend(nrow=1, byrow = TRUE, keywidth = 2)) +
     scale_linetype_manual(
       values = c("MAR" = "solid" ,"0" = "longdash", "changing" = "dashed", "-1" = "dotted"),
-      name = expression(paste(Delta, "="))
-    )
+      labels = c("MAR", expression(paste(Delta, "=", 0)), expression(paste(Delta, "=", -((age - 25) / 75)^3)), expression(paste(Delta, "=-1")))
+    ) +
+    scale_y_continuous(
+      breaks = c(0, 0.5, 1),
+      limits = c(0,1)
+    ) 
   
   list(plot1, plot2)
 }
@@ -292,7 +297,7 @@ for(i in 1:4){
     filter(age <= 40+15*(i-1) & age >= 40+15*(i-1)-15) %>%
     mutate(EM_imp = EM)
   names_all_files <- list.files("results/")
-  
+    
   # pool predictions from  the imputations
   pool_pred_observed <- pool_pred_obs(
     vector_of_file_names = "results/fit_jm_observed.Rdata",
@@ -334,7 +339,8 @@ for(i in 1:4){
   # plot pooled predictions
   plots_for_participant <-  
     plot_predictions(
-      list_of_pooled_predictions =  list_of_pooled_predictions[[i]]
+      list_of_pooled_predictions =  list_of_pooled_predictions[[i]],
+      xlim_min= 25
     )
   
   plot_dynamic_prediction_memory[[i]] <- plots_for_participant [[1]]
@@ -343,8 +349,8 @@ for(i in 1:4){
 
 pdf(
   file = "reports/Gorbach_Figure_3.pdf",
-  width = 7, # The width of the plot in inches
-  height = 4, onefile=FALSE
+  width = 6.5, # The width of the plot in inches
+  height = 4, onefile = FALSE
 )
 ggarrange(plotlist = c(plot_dynamic_prediction_memory, plot_dynamic_prediction_survival),
           ncol = 4, nrow = 2,
@@ -357,14 +363,15 @@ dev.off()
 load("dat.Rdata")
 dat_surv_selected_ids <- dat_surv%>%filter(sex == 0 & educ_imp>=9 & educ_imp <=11 & status == F & age_last_obs > 65 & age_last_obs< 70)
 # ids <- c(385, 1064, 2865, 3480, 4300) # dat_surv%>%filter(sex == 0 & educ_imp>=9 & educ_imp <=11 & status == F & age_last_obs > 65 & age_last_obs< 70)
-ids <-  c(1155, 2972, 3050, 2960, 2989, 2591) # dat_surv%>%filter(sex == 0 & educ_imp>=9 & educ_imp <=11 & status == F & age_last_obs > 83 & age_last_obs< 85)
-# ids = c(4041, 4369) - very young
-# selected ids from dat_surv%>%filter(sex == 0 & educ_imp>=9 & educ_imp <=11 & status == F & age_last_obs > 65 & age_last_obs< 70).
-# last obs between 65 and 70. 2865: better memory but only 2 obs; 4300- worse memory 2 obs; 1064: better memory, 5 obs. 
-ids <- c(2865, 4300, 1064) #  for figure 3
-# add older people: selected ids from dat_surv%>%filter(sex == 0 & educ_imp>=9 & educ_imp <=11 & status == F & age_last_obs > 83 & age_last_obs< 85)
-# 1155: only 1 obs better memory, 3050: only 1 obs, worse memory; 2591: better memory, 5 mobservations, 2989 - decreasing memory 5 obs; 2960: low memory, 5 obs.
-ids <- append(ids, c(1155, 3050, 2591, 2989, 2960)) # for figure 3
+# ids <-  c(1155, 2972, 3050, 2960, 2989, 2591) # dat_surv%>%filter(sex == 0 & educ_imp>=9 & educ_imp <=11 & status == F & age_last_obs > 83 & age_last_obs< 85)
+# # ids = c(4041, 4369) - very young
+# # selected ids from dat_surv%>%filter(sex == 0 & educ_imp>=9 & educ_imp <=11 & status == F & age_last_obs > 65 & age_last_obs< 70).
+# # last obs between 65 and 70. 2865: better memory but only 2 obs; 4300- worse memory 2 obs; 1064: better memory, 5 obs. 
+# ids <- c(2865, 4300, 1064) #  for figure 3
+# # add older people: selected ids from dat_surv%>%filter(sex == 0 & educ_imp>=9 & educ_imp <=11 & status == F & age_last_obs > 83 & age_last_obs< 85)
+# # 1155: only 1 obs better memory, 3050: only 1 obs, worse memory; 2591: better memory, 5 mobservations, 2989 - decreasing memory 5 obs; 2960: low memory, 5 obs.
+# ids <- append(ids, c(1155, 3050, 2591, 2989, 2960)) # for figure 3
+ids <- c(2865, 4300, 1064, 2591, 2960)
 dat_long_selected_ids <- dat_long%>%filter(id %in% ids)
 # dat_long_selected_ids <- dat_long%>%filter(id %in% a$id)
 
@@ -421,12 +428,13 @@ for(i in 1:length(ids)){
 i <- 0
 plot_dynamic_prediction_memory <- list()
 plot_dynamic_prediction_survival <- list()
-for(k in c(1:3, 6,8)){ # to many subjects, select a few
+for(k in c(1:5)){ # to many subjects, select a few
   i <- i+1
   # plot pooled predictions
   plots_for_participant <-  
     plot_predictions(
-      list_of_pooled_predictions =  list_of_pooled_predictions[[k]]
+      list_of_pooled_predictions =  list_of_pooled_predictions[[k]],
+      xlim_min = 40
     )
   
   plot_dynamic_prediction_memory[[i]] <- plots_for_participant [[1]]
@@ -439,7 +447,7 @@ pdf(
   height = 4, onefile=FALSE
 )
 ggarrange(plotlist = c(plot_dynamic_prediction_memory, plot_dynamic_prediction_survival),
-          ncol = 6, nrow = 2,
+          ncol = 5, nrow = 2,
           common.legend = T, legend = "bottom"
 )
 dev.off()

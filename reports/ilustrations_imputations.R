@@ -38,7 +38,7 @@ dat_long_with_imputed <- dat_long_with_imputed %>%
   mutate(
     Delta = gsub("imputed_", "", Delta),
     Delta = ifelse(Delta == 1, -1, Delta),
-    Delta = factor(Delta, levels = c("0", "changing", "-1"), labels = c("0", "changing", "-1"))
+    Delta = factor(Delta, levels = c("0", "changing", "-1"), labels = c("0", "age-varying", "-1"))
   ) %>%
   mutate(imputed = ifelse(!is.na(EM), EM, imputed))
 
@@ -55,7 +55,7 @@ imputations_per_pattern <- dat_long_with_imputed %>%
   ggplot() +
   geom_point(
     data = subset(dat_long_with_imputed, !is.na(EM)),
-    mapping = aes(x = age, y = EM), shape = 16, cex = 0.5
+    mapping = aes(x = age, y = EM), shape = 16, cex = 0.1
   ) +
   geom_point(
     data = subset(dat_long_with_imputed, is.na(EM)),
@@ -63,29 +63,49 @@ imputations_per_pattern <- dat_long_with_imputed %>%
   ) +
   geom_smooth(
     mapping = aes(x = age, y = imputed, linetype = Delta),
-    method = "loess", col = "black", alpha = 0.2, linewidth = 0.2
+    method = "loess", se = F, col = "black", alpha = 0.2, linewidth = 0.5
   ) +
-  facet_wrap(facets = vars(missing_data_pattern)) +
+  facet_wrap(facets = vars(missing_data_pattern), nrow = 2) +
   xlab("Age, years") +
   ylab("Memory") +
   scale_linetype_manual(
-    values = c("0" = "longdash", "changing" = "dashed", "-1" = "dotted"),
+    values = c("0" = "longdash", "age-varying" = "dashed", "-1" = "dotted"),
+    labels = c(
+      "0" = "0",
+      "age-varying" = expression(-((age - 25) / 75)^3),
+      "-1" = "-1"
+    ),
     name = expression(paste(Delta, "="))
   ) +
   scale_color_manual(
-    values = c("0" = "yellow", "changing" = "blue", "-1" = "#D55E00"),
+    values = c("0" = "orange", "age-varying" = "#CC79A7", "-1" = "blue"),
+    labels = c(
+      "0" = "0",
+      "age-varying" = expression(-((age - 25) / 75)^3),
+      "-1" = "-1"
+    ),
     name = expression(paste(Delta, "="))
-  ) +
+  )+
   scale_shape_manual(
-    values = c("0" = 1, "changing" = 3, "-1" = 2),
+    values = c("0" = 1, "age-varying" = 3, "-1" = 2),
+    labels = c(
+      "0" = "0",
+      "age-varying" = expression(-((age - 25) / 75)^3),
+      "-1" = "-1"
+    ),
     name = expression(paste(Delta, "="))
   ) +
   guides(colour = guide_legend(override.aes = list(size = 1))) +
-  theme_classic()
+  theme_classic()+
+  theme(
+    legend.position = "bottom",
+    plot.margin = margin(0, 0, 0, 0, "cm"),
+    legend.key.width = unit(3, "line")
+  ) 
 pdf(
   file = "reports/Gorbach_Figure_2.pdf",
-  width = 6, # The width of the plot in inches
-  height = 3
+  width = 6.5, # The width of the plot in inches
+  height = 5
 )
 imputations_per_pattern
 dev.off()
@@ -95,24 +115,35 @@ dev.off()
 plot_individuals <-
   ggplot() +
   geom_point(
-    data = subset(dat_long_with_imputed, !is.na(EM) & id %in% c(6, 28, 36, 41, 42, 43)), mapping =
+    data = subset(dat_long_with_imputed, !is.na(EM) & id %in% c(6,  36, 28, 1494)), 
+    mapping =
       aes(x = age, y = EM), shape = 16, cex = 1
   ) +
   geom_point(
-    data = subset(dat_long_with_imputed, is.na(EM) & id %in% c(6, 28, 36, 41, 42, 43)), mapping =
+    data = subset(dat_long_with_imputed, is.na(EM) & id %in%  c(6,  36, 28, 1494)), 
+    mapping =
       aes(x = age, y = imputed, shape = Delta), cex = 1
   ) +
-  facet_wrap(facets = vars(id)) +
+  facet_wrap(facets = vars(id), nrow = 1) +
   xlab("Age, years") +
   ylab("Memory") +
   scale_shape_manual(
-    values = c("0" = 1, "changing" = 3, "-1" = 2),
-    name = expression(paste(Delta, "="))
+    values = c("0" = 1, "age-varying" = 3, "-1" = 2),
+    labels = c(
+      "0" = expression(paste(Delta, "=", 0)),
+      "age-varying" = expression(paste(Delta, "=", -((age - 25) / 75)^3)), 
+      "-1" = expression(paste(Delta, "=-1"))
+    )
   ) +
-  theme_classic()
+  theme_classic()+
+  theme(
+    legend.position = "bottom",
+    plot.margin = margin(0, 0, 0, 0, "cm"),
+    legend.key.width = unit(3, "line")
+  ) 
 pdf(
-  file = "reports/Gorbach_Figure_C1.pdf",
-  width = 6, # The width of the plot in inches
+  file = "reports/Gorbach_Figure_C2.pdf",
+  width = 6.5, # The width of the plot in inches
   height = 3
 )
 plot_individuals
