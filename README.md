@@ -8,7 +8,7 @@ Folder "imputation" contains
 Folder "substantive_model" contains 
 	fit_jm_observed.r - the code to fit the substantive model to the observed data.
 	fit_jm_parameters.r initialises the values of the parameters to fit the substantive model. 
-	seeds. provides the seeds used to fit the substantive models parametrised by the sensitivity parameter delta.
+	seeds.rtf provides the seeds used to fit the substantive models parametrised by the sensitivity parameter delta.
 	fit_jm_delta_when_dropout_after_60 - the code for multiple imputations: impute missing longitudinal observations  and fit the substantive model to the completed data sets.
 	fit_jm_delta_changes_with_time  -  the code for multiple imputations: impute missing longitudinal observations under changing delta  and fit the substantive model to the completed data sets.
 	
