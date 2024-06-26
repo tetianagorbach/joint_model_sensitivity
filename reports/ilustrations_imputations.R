@@ -133,7 +133,8 @@ plot_individuals <-
       "0" = expression(paste(Delta, "=", 0)),
       "age-varying" = expression(paste(Delta, "=", -((age - 25) / 75)^3)), 
       "-1" = expression(paste(Delta, "=-1"))
-    )
+    ),
+    name = ""
   ) +
   theme_classic()+
   theme(
