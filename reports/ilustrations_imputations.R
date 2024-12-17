@@ -23,6 +23,19 @@ dat_long_with_imputed <- dat_long_with_posterior %>%
 # !! tells R to treat the enclosed expression as an actual variable named k, rather than as a symbol k.
 # filter(!is.na(imputed0)) # 7 obs are not imputed since they are after the biggest last_obs_time.
 # d <- dat_long_with_imputed%>%filter(id == 1570)
+
+dat_long_with_imputed <- dat_long_with_posterior %>%
+  group_by(id) %>%
+  mutate(age_dropout = max(age[!is.na(EM)])) %>% # calculate  scaled age at dropout
+  ungroup() %>%
+  mutate(
+    t_minus_t_dropout_pos_after60 = (age - age_dropout) * (age - age_dropout > 0) * (age_dropout > 60),
+    t_minus_t_dropout_pos= (age - age_dropout) * (age - age_dropout > 0), 
+    dropout_after_60 = age_dropout > 60,
+    imputed_0 = EM_posterior,
+    imputed_1 = EM_posterior + (-1) * t_minus_t_dropout_pos_after60,
+    imputed_changing = EM_posterior - 1 * ((age - 25) / 75)^3 * t_minus_t_dropout_pos
+  ) 
 dat_long_with_imputed <- dat_long_with_imputed %>%
   pivot_longer(
     cols = c(
@@ -50,22 +63,23 @@ dat_long_with_imputed <- dat_long_with_imputed %>%
 
 
 # Figure 2 imputations and mean trajectories per pattern ------------------
-
-imputations_per_pattern <- dat_long_with_imputed %>%
+dat_long_with_imputed_wo_fully_obs <- dat_long_with_imputed %>%
+  filter(missing_data_pattern%in% c("5","4","3","2"))
+imputations_per_pattern <- dat_long_with_imputed_wo_fully_obs %>%
   ggplot() +
   geom_point(
-    data = subset(dat_long_with_imputed, !is.na(EM)),
+    data = subset(dat_long_with_imputed_wo_fully_obs, !is.na(EM)),
     mapping = aes(x = age, y = EM), shape = 16, cex = 0.1
   ) +
   geom_point(
-    data = subset(dat_long_with_imputed, is.na(EM)),
+    data = subset(dat_long_with_imputed_wo_fully_obs, is.na(EM)),
     mapping = aes(x = age, y = imputed, shape = Delta, col = Delta), cex = 0.1
   ) +
   geom_smooth(
     mapping = aes(x = age, y = imputed, linetype = Delta),
     method = "loess", se = F, col = "black", alpha = 0.2, linewidth = 0.5
   ) +
-  facet_wrap(facets = vars(missing_data_pattern), nrow = 2) +
+  facet_wrap(facets = vars(missing_data_pattern), nrow = 1) +
   xlab("Age, years") +
   ylab("Memory") +
   scale_linetype_manual(
@@ -103,7 +117,7 @@ imputations_per_pattern <- dat_long_with_imputed %>%
     legend.key.width = unit(3, "line")
   ) 
 pdf(
-  file = "reports/Gorbach_Figure_2.pdf",
+  file = "reports/Gorbach_Figure_2_1_row.pdf",
   width = 6.5, # The width of the plot in inches
   height = 5
 )
